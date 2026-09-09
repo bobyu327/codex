@@ -53,7 +53,8 @@ pub(crate) async fn run_unarchive_prompt(
                     return Ok(choice);
                 }
             }
-            TuiEvent::Paste(_)
+            TuiEvent::Mouse(_)
+            | TuiEvent::Paste(_)
             | TuiEvent::Draw
             | TuiEvent::Resize(_)
             | TuiEvent::Resume
