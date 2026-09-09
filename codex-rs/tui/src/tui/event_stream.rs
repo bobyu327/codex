@@ -263,7 +263,7 @@ impl<S: EventSource + Default + Unpin> TuiEventStream<S> {
         }
     }
 
-    /// Map a crossterm event to a [`TuiEvent`], skipping events we don't use (mouse events, etc.).
+    /// Map a crossterm event to a [`TuiEvent`].
     fn map_crossterm_event(&mut self, event: Event) -> Option<TuiEvent> {
         match event {
             Event::Key(key_event) => {
@@ -291,6 +291,7 @@ impl<S: EventSource + Default + Unpin> TuiEventStream<S> {
                 Some(TuiEvent::Resize(size))
             }
             Event::Paste(pasted) => Some(TuiEvent::Paste(pasted)),
+            Event::Mouse(mouse_event) => Some(TuiEvent::Mouse(mouse_event)),
             Event::FocusGained => {
                 self.terminal_focused.store(true, Ordering::Relaxed);
                 // Keep the startup-cached palette: querying terminal colors here blocks the
@@ -437,7 +438,7 @@ mod tests {
     }
 
     #[tokio::test(flavor = "current_thread")]
-    async fn key_event_skips_unmapped() {
+    async fn mouse_event_is_forwarded() {
         let (broker, handle, _draw_tx, draw_rx, terminal_focused) = setup();
         let mut stream = make_stream(broker, draw_rx, terminal_focused);
 
@@ -447,17 +448,12 @@ mod tests {
             row: 0,
             modifiers: KeyModifiers::NONE,
         })));
-        handle.send(Ok(Event::Key(KeyEvent::new(
-            KeyCode::Char('a'),
-            KeyModifiers::NONE,
-        ))));
-
         let next = stream.next().await.unwrap();
         match next {
-            TuiEvent::Key(key) => {
-                assert_eq!(key, KeyEvent::new(KeyCode::Char('a'), KeyModifiers::NONE));
+            TuiEvent::Mouse(mouse) => {
+                assert_eq!(mouse.kind, MouseEventKind::Moved);
             }
-            other => panic!("expected key event, got {other:?}"),
+            other => panic!("expected mouse event, got {other:?}"),
         }
     }
 
