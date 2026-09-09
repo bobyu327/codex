@@ -802,9 +802,7 @@ impl Tui {
             return Ok(());
         }
         let _ = execute!(self.terminal.backend_mut(), EnterAlternateScreen);
-        // Capture mouse input while a full-screen overlay is visible.  In particular, keep
-        // wheel input as mouse events instead of asking terminals to synthesize Up/Down keys.
-        let _ = execute!(self.terminal.backend_mut(), EnableMouseCapture);
+        self.enable_mouse_capture();
         if let Ok(size) = self.terminal.size() {
             self.alt_saved_viewport = Some(self.terminal.viewport_area);
             self.terminal.resize(size)?;
@@ -822,10 +820,10 @@ impl Tui {
 
     /// Leave alternate screen and restore the previously saved inline viewport, if any.
     pub fn leave_alt_screen(&mut self) -> Result<()> {
+        self.disable_mouse_capture();
         if !self.alt_screen_enabled {
             return Ok(());
         }
-        let _ = execute!(self.terminal.backend_mut(), DisableMouseCapture);
         let _ = execute!(self.terminal.backend_mut(), LeaveAlternateScreen);
         if let Some(saved) = self.alt_saved_viewport.take() {
             self.terminal.set_viewport_area(saved);
@@ -834,6 +832,18 @@ impl Tui {
         self.terminal.invalidate_viewport();
         self.alt_screen_active.store(false, Ordering::Relaxed);
         Ok(())
+    }
+
+    /// Start reporting mouse input to the event stream. This is deliberately separate from the
+    /// alternate-screen setting: transcript overlays can be rendered inline when users choose
+    /// `tui.alternate_screen = "never"`.
+    pub fn enable_mouse_capture(&mut self) {
+        let _ = execute!(self.terminal.backend_mut(), EnableMouseCapture);
+    }
+
+    /// Stop reporting mouse input to the event stream.
+    pub fn disable_mouse_capture(&mut self) {
+        let _ = execute!(self.terminal.backend_mut(), DisableMouseCapture);
     }
 
     pub fn insert_history_lines(&mut self, lines: Vec<Line<'static>>) {
