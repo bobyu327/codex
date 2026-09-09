@@ -10,6 +10,8 @@ use std::sync::atomic::Ordering;
 use crossterm::cursor::MoveTo;
 use crossterm::cursor::Show;
 use crossterm::event::KeyCode;
+use crossterm::event::DisableMouseCapture;
+use crossterm::event::EnableMouseCapture;
 use crossterm::terminal::EnterAlternateScreen;
 use crossterm::terminal::LeaveAlternateScreen;
 use ratatui::crossterm::execute;
@@ -18,8 +20,6 @@ use ratatui::layout::Size;
 
 use crate::key_hint;
 
-use super::DisableAlternateScroll;
-use super::EnableAlternateScroll;
 use super::Terminal;
 
 pub const SUSPEND_KEY: key_hint::KeyBinding = key_hint::ctrl(KeyCode::Char('z'));
@@ -64,7 +64,7 @@ impl SuspendContext {
     pub(crate) fn suspend(&self, alt_screen_active: &Arc<AtomicBool>) -> Result<()> {
         if alt_screen_active.load(Ordering::Relaxed) {
             // Leave alt-screen so the terminal returns to the normal buffer while suspended; also turn off alt-scroll.
-            let _ = execute!(stdout(), DisableAlternateScroll);
+            let _ = execute!(stdout(), DisableMouseCapture);
             let _ = execute!(stdout(), LeaveAlternateScreen);
             self.set_resume_action(ResumeAction::RestoreAlt);
         } else {
@@ -186,8 +186,7 @@ impl PreparedResumeAction {
             }
             PreparedResumeAction::RestoreAltScreen => {
                 execute!(terminal.backend_mut(), EnterAlternateScreen)?;
-                // Enable "alternate scroll" so terminals may translate wheel to arrows
-                execute!(terminal.backend_mut(), EnableAlternateScroll)?;
+                execute!(terminal.backend_mut(), EnableMouseCapture)?;
                 terminal.set_viewport_area(Rect::from(screen_size));
                 terminal.clear()?;
             }

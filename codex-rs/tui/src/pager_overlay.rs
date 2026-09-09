@@ -40,6 +40,8 @@ use crate::tui;
 use crate::tui::TuiEvent;
 use crossterm::event::KeyCode;
 use crossterm::event::KeyEvent;
+use crossterm::event::MouseEvent;
+use crossterm::event::MouseEventKind;
 use ratatui::buffer::Buffer;
 use ratatui::buffer::Cell;
 use ratatui::layout::Rect;
@@ -329,6 +331,21 @@ impl PagerView {
             _ => {
                 return Ok(());
             }
+        }
+        tui.frame_requester()
+            .schedule_frame_in(crate::tui::TARGET_FRAME_INTERVAL);
+        Ok(())
+    }
+
+    fn handle_mouse_event(&mut self, tui: &mut tui::Tui, mouse_event: MouseEvent) -> Result<()> {
+        // Terminals report trackpad gestures as a sequence of wheel ticks.  Three rows per tick
+        // matches the feel of common terminal pagers while keeping short gestures precise.
+        match mouse_event.kind {
+            MouseEventKind::ScrollUp => self.scroll_offset = self.scroll_offset.saturating_sub(3),
+            MouseEventKind::ScrollDown => {
+                self.scroll_offset = self.scroll_offset.saturating_add(3);
+            }
+            _ => return Ok(()),
         }
         tui.frame_requester()
             .schedule_frame_in(crate::tui::TARGET_FRAME_INTERVAL);
@@ -948,6 +965,7 @@ impl TranscriptOverlay {
                 }
                 other => self.view.handle_key_event(tui, other),
             },
+            TuiEvent::Mouse(mouse_event) => self.view.handle_mouse_event(tui, mouse_event),
             TuiEvent::Draw | TuiEvent::Resume | TuiEvent::Resize(_) | TuiEvent::FocusGained => {
                 tui.draw(u16::MAX, |frame| {
                     self.render(frame.area(), frame.buffer);
@@ -1022,6 +1040,7 @@ impl StaticOverlay {
                 }
                 other => self.view.handle_key_event(tui, other),
             },
+            TuiEvent::Mouse(mouse_event) => self.view.handle_mouse_event(tui, mouse_event),
             TuiEvent::Draw | TuiEvent::Resume | TuiEvent::Resize(_) | TuiEvent::FocusGained => {
                 tui.draw(u16::MAX, |frame| {
                     self.render(frame.area(), frame.buffer);
