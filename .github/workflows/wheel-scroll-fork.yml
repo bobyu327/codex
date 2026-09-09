@@ -1,0 +1,35 @@
+name: wheel-scroll fork build
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-and-build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: codex-rs
+    env:
+      # Keep this fork workflow conservative even on a hosted runner.
+      CARGO_BUILD_JOBS: "2"
+      CARGO_INCREMENTAL: "0"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@e081816240890017053eacbb1bdf337761dc5582 # 1.95.0
+      - name: Test TUI event stream
+        run: cargo test -p codex-tui tui::event_stream
+      - name: Build Linux x64 Codex
+        run: cargo build -p codex-cli --bin codex --release
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
+        with:
+          name: codex-wheel-scroll-linux-x64
+          path: codex-rs/target/release/codex
+          if-no-files-found: error
+          retention-days: 7
