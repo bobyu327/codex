@@ -9,7 +9,9 @@ permissions:
 jobs:
   verify-and-build:
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    # The first clean release build takes about 50 minutes with the deliberately conservative
+    # two-job setting below; leave room for the TUI test and artifact upload.
+    timeout-minutes: 120
     defaults:
       run:
         working-directory: codex-rs
