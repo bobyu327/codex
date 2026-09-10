@@ -9,15 +9,14 @@ permissions:
 jobs:
   verify-and-build:
     runs-on: ubuntu-24.04
-    # The first clean release build takes about 50 minutes with the deliberately conservative
-    # two-job setting below; leave room for the TUI test and artifact upload.
+    # Leave room for the first clean release build and artifact upload.
     timeout-minutes: 120
     defaults:
       run:
         working-directory: codex-rs
     env:
-      # Keep this fork workflow conservative even on a hosted runner.
-      CARGO_BUILD_JOBS: "2"
+      # Use the standard runner's four cores; Seoul is never used for this build.
+      CARGO_BUILD_JOBS: "4"
       CARGO_INCREMENTAL: "0"
       CARGO_PROFILE_DEV_DEBUG: "0"
     steps:
