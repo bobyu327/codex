@@ -8,7 +8,8 @@ permissions:
 
 jobs:
   verify-and-build:
-    runs-on: ubuntu-24.04
+    # Build against glibc 2.35 so the artifact runs on the Seoul Ubuntu 22.04 host.
+    runs-on: ubuntu-22.04
     # Leave room for the first clean release build and artifact upload.
     timeout-minutes: 120
     defaults:
